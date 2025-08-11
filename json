@@ -1,0 +1,18 @@
+json
+[
+  {
+    "report_id": "unique_id_1", // Unique identifier for each report
+    "user_id": "optional_user_id", // If users create accounts
+    "latitude": 18.5204, // Latitude coordinate
+    "longitude": 73.8567, // Longitude coordinate
+    "road_condition_type": "Pothole", // From the dropdown selection
+    "severity": "Severe", // From the radio buttons
+    "photo_url": "url_to_image.jpg", // URL of the uploaded photo (if any)
+    "comments": "Large pothole causing traffic disruption.", // User's comments
+    "timestamp": "2025-08-08T19:30:00Z" // Date and time of the report (ISO 8601 format)
+  },
+  {
+    "report_id": "unique_id_2",
+    // ... other reports
+  }
+]
