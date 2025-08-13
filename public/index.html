@@ -81,20 +81,30 @@
     </div>
 
     <script>
-        var map = L.map('map').setView([18.5204, 73.8567], 13);
+        // Set the map's initial view to be wider, centered on Southern India
+        var map = L.map('map').setView([15.5, 76.5], 6);
+        
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
             attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
         }).addTo(map);
 
         let temporaryMarker = null;
 
-        // Function to place a new marker on the map
+        // This function places a new marker on the map
         function addMarkerToMap(report) {
+            // Format the timestamp from the database into a readable format
+            const reportTimestamp = new Date(report.timestamp);
+            const formattedTime = reportTimestamp.toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' });
+
+            // Create the content for the marker's popup, now including the location and formatted time
             const popupContent = `
+                <b>Location:</b> ${report.locationName || 'N/A'}<br>
                 <b>Condition:</b> ${report.road_condition_type || 'N/A'}<br>
                 <b>Severity:</b> ${report.severity || 'N/A'}<br>
-                <b>Comments:</b> ${report.comments || 'No comments provided.'}
+                <b>Comments:</b> ${report.comments || 'No comments provided.'}<br>
+                <b>Reported:</b> ${formattedTime}
             `;
+            
             L.marker([report.latitude, report.longitude]).addTo(map)
                 .bindPopup(popupContent);
         }
@@ -115,22 +125,19 @@
             const lat = e.latlng.lat;
             const lng = e.latlng.lng;
 
-            // Update the hidden form fields with coordinates
             document.getElementById('latitude').value = lat;
             document.getElementById('longitude').value = lng;
             
-            // Remove the old temporary marker if it exists
             if (temporaryMarker) {
                 map.removeLayer(temporaryMarker);
             }
-            // Add a new temporary marker to show selection
             temporaryMarker = L.marker([lat, lng]).addTo(map)
                 .bindPopup('Location selected. Fill out the form.').openPopup();
         });
 
         // Handle form submission
         document.getElementById('reportForm').addEventListener('submit', async function(e) {
-            e.preventDefault(); // Prevent the default form submission (page reload)
+            e.preventDefault(); 
 
             const formData = new FormData(this);
             const reportData = Object.fromEntries(formData.entries());
@@ -148,10 +155,10 @@
 
                 const newReport = await response.json();
                 alert('Report submitted successfully!');
-                addMarkerToMap(newReport.data); // Add the new marker to the map instantly
-                this.reset(); // Clear the form
+                addMarkerToMap(newReport.data); 
+                this.reset();
                 if (temporaryMarker) {
-                    map.removeLayer(temporaryMarker); // Remove the temporary selection marker
+                    map.removeLayer(temporaryMarker);
                 }
             } catch (error) {
                 console.error('Failed to submit report:', error);

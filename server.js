@@ -1,61 +1,72 @@
 const express = require('express');
 const mongoose = require('mongoose');
+const axios = require('axios'); // <-- ADD THIS
 
 const app = express();
-const port = 3000;
+const port = process.env.PORT || 3000;
 
 app.use(express.json());
 app.use(express.static('public'));
 
-// --- DATABASE CONNECTION ---
-const mongoURI = 'mongodb+srv://User-108:Kanha10@road-app-cluster.7ez1xtd.mongodb.net/?retryWrites=true&w=majority&appName=Road-app-cluster';
+const mongoURI = process.env.MONGO_URI;
+const locationIqKey = process.env.LOCATIONIQ_API_KEY; // <-- ADD THIS
 
 mongoose.connect(mongoURI)
-  .then(() => console.log('Successfully connected to MongoDB Atlas!'))
-  .catch(err => console.error('Connection error:', err));
+  .then(() => console.log('WebApp successfully connected to MongoDB Atlas!'))
+  .catch(err => console.error('WebApp Connection error:', err));
 
-// --- DATA BLUEPRINT (SCHEMA) & MODEL ---
+// UPDATE THE SCHEMA
 const reportSchema = new mongoose.Schema({
   latitude: Number,
   longitude: Number,
+  locationName: String, // <-- ADD THIS NEW FIELD
   road_condition_type: String,
   severity: String,
-  photo_url: String,
   comments: String,
   timestamp: { type: Date, default: Date.now }
 });
 const Report = mongoose.model('Report', reportSchema);
 
-
-// --- API ROUTES ---
-
-// POST Route: SAVES a new report
+// UPDATE THE POST ROUTE
 app.post('/api/reports', async (req, res) => {
   try {
-    const newReport = new Report(req.body);
+    const { latitude, longitude, road_condition_type, severity, comments } = req.body;
+    let locationName = 'Unknown Location';
+
+    // Call LocationIQ API to get the address
+    if (latitude && longitude && locationIqKey) {
+        const geoRes = await axios.get(`https://us1.locationiq.com/v1/reverse.php?key=${locationIqKey}&lat=${latitude}&lon=${longitude}&format=json`);
+        if (geoRes.data && geoRes.data.display_name) {
+            locationName = geoRes.data.display_name;
+        }
+    }
+
+    const newReport = new Report({
+        latitude,
+        longitude,
+        locationName, // <-- SAVE THE NEW LOCATION NAME
+        road_condition_type,
+        severity,
+        comments
+    });
+
     await newReport.save();
-    console.log('Successfully saved a new report:', newReport);
     res.status(201).send({ message: 'Report saved successfully!', data: newReport });
   } catch (error) {
-    console.error('Error saving report:', error);
+    console.error('Error saving report:', error.message);
     res.status(500).send({ message: 'Error saving report' });
   }
 });
 
-// **** ADD THIS NEW GET ROUTE ****
-// GET Route: FETCHES all reports
 app.get('/api/reports', async (req, res) => {
   try {
-    const reports = await Report.find({}); // .find({}) gets all documents in the collection
+    const reports = await Report.find({});
     res.status(200).send(reports);
   } catch (error) {
-    console.error('Error fetching reports:', error);
     res.status(500).send({ message: 'Error fetching reports' });
   }
 });
 
-
-// --- START SERVER ---
 app.listen(port, () => {
   console.log(`Server listening on port ${port}`);
 });
