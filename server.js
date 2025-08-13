@@ -31,12 +31,20 @@ app.post('/api/reports', async (req, res) => {
     const { latitude, longitude, road_condition_type, severity, comments } = req.body;
     let locationName = 'Unknown Location';
 
-    if (latitude && longitude && locationIqKey) {
-        const geoRes = await axios.get(`https://us1.locationiq.com/v1/reverse.php?key=${locationIqKey}&lat=${latitude}&lon=${longitude}&format=json`);
-        if (geoRes.data && geoRes.data.display_name) {
-            locationName = geoRes.data.display_name;
+    // **** THIS IS THE UPDATED PART ****
+    // We've added a specific try/catch block to find the real error.
+    try {
+        if (latitude && longitude && locationIqKey) {
+            const geoRes = await axios.get(`https://us1.locationiq.com/v1/reverse.php?key=${locationIqKey}&lat=${latitude}&lon=${longitude}&format=json`);
+            if (geoRes.data && geoRes.data.display_name) {
+                locationName = geoRes.data.display_name;
+            }
         }
+    } catch (geoError) {
+        // This will print the detailed error from LocationIQ to our logs!
+        console.error("Geocoding Error:", geoError.response ? geoError.response.data : geoError.message);
     }
+    // **** END OF UPDATED PART ****
 
     const newReport = new Report({
         latitude,
@@ -50,7 +58,7 @@ app.post('/api/reports', async (req, res) => {
     await newReport.save();
     res.status(201).send({ message: 'Report saved successfully!', data: newReport });
   } catch (error) {
-    console.error('Error saving report:', error.message);
+    console.error('Error in POST /api/reports:', error.message);
     res.status(500).send({ message: 'Error saving report' });
   }
 });
@@ -64,7 +72,6 @@ app.get('/api/reports', async (req, res) => {
   }
 });
 
-// THIS IS THE ONLY LINE THAT CHANGED
 app.listen(port, '0.0.0.0', () => {
   console.log(`Server listening on port ${port}`);
 });
