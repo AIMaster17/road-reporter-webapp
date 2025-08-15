@@ -1,4 +1,4 @@
-// Final version with added logging
+// Final version with filtering logic
 const express = require('express');
 const mongoose = require('mongoose');
 const axios = require('axios');
@@ -28,6 +28,7 @@ const reportSchema = new mongoose.Schema({
 const Report = mongoose.model('Report', reportSchema);
 
 app.post('/api/reports', async (req, res) => {
+  // ... (This function does not need to be changed)
   try {
     const { latitude, longitude, road_condition_type, severity, comments } = req.body;
     let locationName = 'Unknown Location';
@@ -56,12 +57,22 @@ app.post('/api/reports', async (req, res) => {
   }
 });
 
+// THIS IS THE UPDATED GET ROUTE
 app.get('/api/reports', async (req, res) => {
   try {
-    const reports = await Report.find({}).sort({_id: -1});
+    // Create a filter object from the URL query parameters
+    const filter = {};
+    if (req.query.type) {
+      filter.road_condition_type = req.query.type;
+    }
+    if (req.query.severity) {
+      filter.severity = req.query.severity;
+    }
+
+    // Use the filter object in the find() query
+    const reports = await Report.find(filter).sort({_id: -1});
     
-    // --- THIS IS THE NEW DEBUGGING LINE ---
-    console.log(`Found ${reports.length} reports in the database.`);
+    console.log(`Found ${reports.length} reports in the database with filter:`, filter);
     
     res.status(200).send(reports);
   } catch (error) {

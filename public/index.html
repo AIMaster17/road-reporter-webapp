@@ -9,6 +9,7 @@
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
     <style>
+        /* ... (CSS styles remain the same) ... */
         body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; margin: 0; }
         #map { height: 100vh; }
         .form-container {
@@ -59,7 +60,28 @@
         
         <div>
             <h2>Find Reports</h2>
-            <p>Click the button below to load all reported issues onto the map.</p>
+
+            <div id="filter-controls">
+                <label for="filter-type">Filter by Type:</label>
+                <select id="filter-type" name="type">
+                    <option value="">All Types</option>
+                    <option value="Pothole">Pothole</option>
+                    <option value="Crack">Crack</option>
+                    <option value="Waterlogging">Waterlogging</option>
+                    <option value="Obstruction">Obstruction</option>
+                    <option value="Other">Other</option>
+                </select>
+
+                <label for="filter-severity">Filter by Severity:</label>
+                <select id="filter-severity" name="severity">
+                    <option value="">All Severities</option>
+                    <option value="Minor">Minor</option>
+                    <option value="Moderate">Moderate</option>
+                    <option value="Severe">Severe</option>
+                </select>
+            </div>
+            
+            <p>Click the button below to load reported issues onto the map.</p>
             <button id="findReportsBtn" class="btn-search">Find Reports</button>
         </div>
 
@@ -110,10 +132,10 @@
         }
 
         function addMarkerToMap(report) {
-            // FIX: Check for valid coordinates before creating a marker
+            // ... (This function does not need to be changed) ...
             if (!report || typeof report.latitude !== 'number' || typeof report.longitude !== 'number') {
                 console.error('Invalid report data received:', report);
-                return; // Skip this report
+                return;
             }
         
             const reportTimestamp = new Date(report.timestamp);
@@ -130,10 +152,25 @@
                 .bindPopup(popupContent);
         }
         
+        // THIS IS THE UPDATED loadReports FUNCTION
         async function loadReports() {
-            clearMarkers(); 
+            clearMarkers();
+
+            // Get the selected values from the filter dropdowns
+            const typeFilter = document.getElementById('filter-type').value;
+            const severityFilter = document.getElementById('filter-severity').value;
+            
+            // Build the URL with query parameters
+            let fetchURL = '/api/reports?';
+            if (typeFilter) {
+                fetchURL += `type=${typeFilter}&`;
+            }
+            if (severityFilter) {
+                fetchURL += `severity=${severityFilter}`;
+            }
+
             try {
-                const response = await fetch('/api/reports');
+                const response = await fetch(fetchURL);
                 const reports = await response.json();
                 reports.forEach(addMarkerToMap);
             } catch (error) {
@@ -144,6 +181,7 @@
         document.getElementById('findReportsBtn').addEventListener('click', loadReports);
 
         map.on('click', function(e) {
+            // ... (This function does not need to be changed) ...
             const lat = e.latlng.lat;
             const lng = e.latlng.lng;
             document.getElementById('latitude').value = lat;
@@ -157,11 +195,11 @@
         });
 
         document.getElementById('reportForm').addEventListener('submit', async function(e) {
+            // ... (This function does not need to be changed) ...
             e.preventDefault(); 
-            // FIX: When submitting a new report, remove the temporary marker immediately.
             if (temporaryMarker) {
                 map.removeLayer(temporaryMarker);
-                temporaryMarker = null; // Clear the reference
+                temporaryMarker = null;
             }
 
             const formData = new FormData(this);
