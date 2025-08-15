@@ -23,7 +23,7 @@
             width: 280px;
         }
         .form-container h2 { margin-top: 0; }
-        .form-container label { display: block; margin-top: 10px; }
+        .form-container label, .form-container p { display: block; margin-top: 10px; }
         .form-container input, .form-container select, .form-container textarea {
             width: 100%;
             padding: 8px;
@@ -36,14 +36,22 @@
             width: 100%;
             padding: 10px;
             margin-top: 15px;
-            background-color: #28a745;
             color: white;
             border: none;
             border-radius: 4px;
             cursor: pointer;
             font-size: 16px;
         }
-        .form-container button:hover { background-color: #218838; }
+        /* Style for the Submit button */
+        .btn-submit { background-color: #28a745; }
+        .btn-submit:hover { background-color: #218838; }
+        
+        /* Style for the new Search button */
+        .btn-search { background-color: #007bff; }
+        .btn-search:hover { background-color: #0069d9; }
+
+        /* A simple divider */
+        hr { border: none; border-top: 1px solid #eee; margin: 20px 0; }
     </style>
 </head>
 <body>
@@ -51,53 +59,64 @@
     <div id="map"></div>
 
     <div class="form-container">
-        <h2>Report a Road Issue</h2>
-        <p>Click on the map to set the location.</p>
-        <form id="reportForm">
-            <input type="hidden" id="latitude" name="latitude" required>
-            <input type="hidden" id="longitude" name="longitude" required>
+        
+        <div>
+            <h2>Find Reports</h2>
+            <p>Click the button below to load all reported issues onto the map.</p>
+            <button id="findReportsBtn" class="btn-search">Find Reports</button>
+        </div>
 
-            <label for="road_condition_type">Condition Type:</label>
-            <select id="road_condition_type" name="road_condition_type" required>
-                <option value="Pothole">Pothole</option>
-                <option value="Crack">Crack</option>
-                <option value="Waterlogging">Waterlogging</option>
-                <option value="Obstruction">Obstruction</option>
-                <option value="Other">Other</option>
-            </select>
+        <hr>
 
-            <label for="severity">Severity:</label>
-            <select id="severity" name="severity" required>
-                <option value="Minor">Minor</option>
-                <option value="Moderate">Moderate</option>
-                <option value="Severe">Severe</option>
-            </select>
+        <div>
+            <h2>Report a Road Issue</h2>
+            <p>Click on the map to set the location.</p>
+            <form id="reportForm">
+                <input type="hidden" id="latitude" name="latitude" required>
+                <input type="hidden" id="longitude" name="longitude" required>
 
-            <label for="comments">Comments:</label>
-            <textarea id="comments" name="comments" rows="3"></textarea>
+                <label for="road_condition_type">Condition Type:</label>
+                <select id="road_condition_type" name="road_condition_type" required>
+                    <option value="Pothole">Pothole</option>
+                    <option value="Crack">Crack</option>
+                    <option value="Waterlogging">Waterlogging</option>
+                    <option value="Obstruction">Obstruction</option>
+                    <option value="Other">Other</option>
+                </select>
 
-            <button type="submit">Submit Report</button>
-        </form>
+                <label for="severity">Severity:</label>
+                <select id="severity" name="severity" required>
+                    <option value="Minor">Minor</option>
+                    <option value="Moderate">Moderate</option>
+                    <option value="Severe">Severe</option>
+                </select>
+
+                <label for="comments">Comments:</label>
+                <textarea id="comments" name="comments" rows="3"></textarea>
+
+                <button type="submit" class="btn-submit">Submit Report</button>
+            </form>
+        </div>
     </div>
 
     <script>
-        // Set the map's initial view to be wider, centered on Southern India
         var map = L.map('map').setView([15.5, 76.5], 6);
-        
-        // Use the new Carto "Voyager" tile layer for a clean, detailed map
         L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
             attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
         }).addTo(map);
 
         let temporaryMarker = null;
+        // This layer group will hold all our report markers
+        let reportMarkers = L.layerGroup().addTo(map);
 
-        // This function places a new marker on the map
+        // This function will remove all existing report markers from the map
+        function clearMarkers() {
+            reportMarkers.clearLayers();
+        }
+
         function addMarkerToMap(report) {
-            // Format the timestamp from the database into a readable format
             const reportTimestamp = new Date(report.timestamp);
             const formattedTime = reportTimestamp.toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' });
-
-            // Create the content for the marker's popup, including the location and formatted time
             const popupContent = `
                 <b>Location:</b> ${report.locationName || 'N/A'}<br>
                 <b>Condition:</b> ${report.road_condition_type || 'N/A'}<br>
@@ -105,13 +124,13 @@
                 <b>Comments:</b> ${report.comments || 'No comments provided.'}<br>
                 <b>Reported:</b> ${formattedTime}
             `;
-            
-            L.marker([report.latitude, report.longitude]).addTo(map)
+            // Add the new marker to our layer group instead of directly to the map
+            L.marker([report.latitude, report.longitude]).addTo(reportMarkers)
                 .bindPopup(popupContent);
         }
         
-        // Fetch existing reports and display them
         async function loadReports() {
+            clearMarkers(); // Clear any old markers before loading new ones
             try {
                 const response = await fetch('/api/reports');
                 const reports = await response.json();
@@ -121,11 +140,14 @@
             }
         }
 
-        // Handle map clicks to set location
+        // --- Event Listeners ---
+
+        // NEW: Event listener for our "Find Reports" button
+        document.getElementById('findReportsBtn').addEventListener('click', loadReports);
+
         map.on('click', function(e) {
             const lat = e.latlng.lat;
             const lng = e.latlng.lng;
-
             document.getElementById('latitude').value = lat;
             document.getElementById('longitude').value = lng;
             
@@ -136,10 +158,8 @@
                 .bindPopup('Location selected. Fill out the form.').openPopup();
         });
 
-        // Handle form submission
         document.getElementById('reportForm').addEventListener('submit', async function(e) {
             e.preventDefault(); 
-
             const formData = new FormData(this);
             const reportData = Object.fromEntries(formData.entries());
 
@@ -149,26 +169,22 @@
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(reportData)
                 });
-
-                if (!response.ok) {
-                    throw new Error('Network response was not ok');
-                }
+                if (!response.ok) throw new Error('Network response was not ok');
 
                 const newReport = await response.json();
                 alert('Report submitted successfully!');
                 addMarkerToMap(newReport.data); 
                 this.reset();
-                if (temporaryMarker) {
-                    map.removeLayer(temporaryMarker);
-                }
+                if (temporaryMarker) map.removeLayer(temporaryMarker);
             } catch (error) {
                 console.error('Failed to submit report:', error);
                 alert('Failed to submit report. Please try again.');
             }
         });
 
-        // Initial load of reports
-        //loadReports();
+        // NOTE: We no longer call loadReports() automatically when the page loads.
+        // loadReports(); 
+
     </script>
 
 </body>
