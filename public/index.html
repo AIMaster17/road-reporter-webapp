@@ -84,8 +84,9 @@
         // Set the map's initial view to be wider, centered on Southern India
         var map = L.map('map').setView([15.5, 76.5], 6);
         
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+        // Use the new Carto "Voyager" tile layer for a clean, detailed map
+        L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
+            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
         }).addTo(map);
 
         let temporaryMarker = null;
@@ -96,7 +97,7 @@
             const reportTimestamp = new Date(report.timestamp);
             const formattedTime = reportTimestamp.toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' });
 
-            // Create the content for the marker's popup, now including the location and formatted time
+            // Create the content for the marker's popup, including the location and formatted time
             const popupContent = `
                 <b>Location:</b> ${report.locationName || 'N/A'}<br>
                 <b>Condition:</b> ${report.road_condition_type || 'N/A'}<br>
@@ -167,7 +168,7 @@
         });
 
         // Initial load of reports
-       // loadReports();
+        loadReports();
     </script>
 
 </body>
