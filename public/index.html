@@ -42,15 +42,12 @@
             cursor: pointer;
             font-size: 16px;
         }
-        /* Style for the Submit button */
         .btn-submit { background-color: #28a745; }
         .btn-submit:hover { background-color: #218838; }
         
-        /* Style for the new Search button */
         .btn-search { background-color: #007bff; }
         .btn-search:hover { background-color: #0069d9; }
 
-        /* A simple divider */
         hr { border: none; border-top: 1px solid #eee; margin: 20px 0; }
     </style>
 </head>
@@ -106,15 +103,19 @@
         }).addTo(map);
 
         let temporaryMarker = null;
-        // This layer group will hold all our report markers
         let reportMarkers = L.layerGroup().addTo(map);
 
-        // This function will remove all existing report markers from the map
         function clearMarkers() {
             reportMarkers.clearLayers();
         }
 
         function addMarkerToMap(report) {
+            // FIX: Check for valid coordinates before creating a marker
+            if (!report || typeof report.latitude !== 'number' || typeof report.longitude !== 'number') {
+                console.error('Invalid report data received:', report);
+                return; // Skip this report
+            }
+        
             const reportTimestamp = new Date(report.timestamp);
             const formattedTime = reportTimestamp.toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' });
             const popupContent = `
@@ -124,13 +125,13 @@
                 <b>Comments:</b> ${report.comments || 'No comments provided.'}<br>
                 <b>Reported:</b> ${formattedTime}
             `;
-            // Add the new marker to our layer group instead of directly to the map
+            
             L.marker([report.latitude, report.longitude]).addTo(reportMarkers)
                 .bindPopup(popupContent);
         }
         
         async function loadReports() {
-            clearMarkers(); // Clear any old markers before loading new ones
+            clearMarkers(); 
             try {
                 const response = await fetch('/api/reports');
                 const reports = await response.json();
@@ -140,9 +141,6 @@
             }
         }
 
-        // --- Event Listeners ---
-
-        // NEW: Event listener for our "Find Reports" button
         document.getElementById('findReportsBtn').addEventListener('click', loadReports);
 
         map.on('click', function(e) {
@@ -160,6 +158,12 @@
 
         document.getElementById('reportForm').addEventListener('submit', async function(e) {
             e.preventDefault(); 
+            // FIX: When submitting a new report, remove the temporary marker immediately.
+            if (temporaryMarker) {
+                map.removeLayer(temporaryMarker);
+                temporaryMarker = null; // Clear the reference
+            }
+
             const formData = new FormData(this);
             const reportData = Object.fromEntries(formData.entries());
 
@@ -175,16 +179,11 @@
                 alert('Report submitted successfully!');
                 addMarkerToMap(newReport.data); 
                 this.reset();
-                if (temporaryMarker) map.removeLayer(temporaryMarker);
             } catch (error) {
                 console.error('Failed to submit report:', error);
                 alert('Failed to submit report. Please try again.');
             }
         });
-
-        // NOTE: We no longer call loadReports() automatically when the page loads.
-        // loadReports(); 
-
     </script>
 
 </body>
