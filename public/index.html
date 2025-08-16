@@ -15,7 +15,7 @@
             position: absolute;
             top: 10px;
             right: 10px;
-            z-index: 999; /* Lower z-index so nav is on top */
+            z-index: 999;
             background: white;
             padding: 15px;
             border-radius: 8px;
@@ -50,7 +50,6 @@
 
         hr { border: none; border-top: 1px solid #eee; margin: 20px 0; }
 
-        /* Styles for the navigation bar */
         .nav-container {
             position: absolute;
             top: 10px;
@@ -70,7 +69,7 @@
             font-weight: bold;
         }
         .nav-container span { color: #333; }
-        .nav-container a#logoutBtn { color: #dc3545; }
+        .nav-container a#logoutBtn { color: #dc3545; cursor: pointer; }
     </style>
 </head>
 <body>
@@ -78,9 +77,7 @@
     <div id="map"></div>
 
     <div class="nav-container" id="nav-container">
-        <a href="/register.html">Register</a>
-        <a href="/login.html">Login</a>
-    </div>
+        </div>
 
     <div class="form-container">
         
@@ -155,7 +152,6 @@
 
         function addMarkerToMap(report) {
             if (!report || typeof report.latitude !== 'number' || typeof report.longitude !== 'number') {
-                console.error('Invalid report data received:', report);
                 return;
             }
             const reportTimestamp = new Date(report.timestamp);
@@ -204,7 +200,6 @@
         document.getElementById('reportForm').addEventListener('submit', async function(e) {
             e.preventDefault();
             
-            // Protect the route: Check for a token before allowing submission
             const token = localStorage.getItem('token');
             if (!token) {
                 alert('You must be logged in to submit a report.');
@@ -235,8 +230,9 @@
             }
         });
 
-        // Update the report instructions based on initial login status
-        if (!localStorage.getItem('token')) {
+        // Update UI based on initial login status
+        const token = localStorage.getItem('token');
+        if (!token) {
             document.getElementById('report-instructions').textContent = 'Please login to report an issue.';
         }
     </script>
